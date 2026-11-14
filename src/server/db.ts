@@ -1,10 +1,12 @@
-import { createClient, type Client, type InValue } from "@libsql/client/web";
+import { createClient } from "@libsql/client/web";
 
 export type RunResult = { changes: number; lastInsertRowid: number };
 
-let client: Client | null = null;
+type LibsqlClient = ReturnType<typeof createClient>;
 
-function getClient(): Client {
+let client: LibsqlClient | null = null;
+
+function getClient(): LibsqlClient {
   if (client) return client;
   const url = process.env.TURSO_DATABASE_URL;
   if (!url) {
@@ -17,10 +19,20 @@ function getClient(): Client {
   return client;
 }
 
-function asArgs(params: unknown[]): InValue[] {
+function asArgs(params: unknown[]): Array<string | number | bigint | boolean | null | Uint8Array> {
   return params.map((p) => {
     if (p === undefined) return null;
-    return p as InValue;
+    if (
+      p === null ||
+      typeof p === "string" ||
+      typeof p === "number" ||
+      typeof p === "bigint" ||
+      typeof p === "boolean" ||
+      p instanceof Uint8Array
+    ) {
+      return p;
+    }
+    throw new TypeError(`Unsupported SQL param type: ${typeof p}`);
   });
 }
 
@@ -37,7 +49,9 @@ export async function query<T = Record<string, unknown>>(
   params: unknown[] = [],
 ): Promise<T[]> {
   const result = await getClient().execute({ sql, args: asArgs(params) });
-  return result.rows.map((row) => normalizeRow<T>(row as unknown as Record<string, unknown>));
+  return result.rows.map((row) =>
+    normalizeRow<T>(row as unknown as Record<string, unknown>),
+  );
 }
 
 export async function get<T = Record<string, unknown>>(

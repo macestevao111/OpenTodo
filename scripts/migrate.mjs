@@ -17,14 +17,24 @@ const client = createClient({
 
 const schemaPath = resolve(__dirname, "../src/server/schema.sql");
 const sql = readFileSync(schemaPath, "utf8");
-const statements = sql
+
+// Strip line comments, then split on statement terminators.
+const withoutComments = sql
+  .split("\n")
+  .map((line) => {
+    const idx = line.indexOf("--");
+    return idx >= 0 ? line.slice(0, idx) : line;
+  })
+  .join("\n");
+
+const statements = withoutComments
   .split(";")
   .map((s) => s.trim())
-  .filter((s) => s.length > 0 && !s.startsWith("--"));
+  .filter((s) => s.length > 0);
 
 for (const statement of statements) {
   await client.execute(statement);
-  console.log("ok:", statement.slice(0, 60).replace(/\s+/g, " ") + "…");
+  console.log("ok:", statement.slice(0, 72).replace(/\s+/g, " ") + "…");
 }
 
 console.log("Schema applied.");
