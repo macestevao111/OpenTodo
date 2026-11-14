@@ -32,7 +32,7 @@ async function main() {
 
   const { labels: existingLabels } = await api("GET", "/api/labels/all");
   const estevao = await ensureLabel("estevao", "#3b82f6", existingLabels);
-  const amigo = await ensureLabel("amigo", "#22c55e", existingLabels);
+  const thiago = await ensureLabel("thiago", "#22c55e", existingLabels);
   const agent = await ensureLabel("agent", "#a855f7", existingLabels);
 
   const { projects } = await api("GET", "/api/projects/all");
@@ -59,10 +59,10 @@ async function main() {
       description:
         "Combinar o que é sucesso em 1–2 frases. Dono: os dois. Ref: docs/guia-colaboracao-agent.md",
       priority: "high",
-      labelIds: [estevao.id, amigo.id],
+      labelIds: [estevao.id, thiago.id],
     },
     {
-      title: "Convidar amigo no GitHub (Collaborators)",
+      title: "Convidar thiago no GitHub (Collaborators)",
       description: "Repo macestevao111/OpenTodo → Settings → Collaborators.",
       priority: "high",
       labelIds: [estevao.id],
@@ -75,10 +75,10 @@ async function main() {
       labelIds: [estevao.id, agent.id],
     },
     {
-      title: "Amigo: abrir board e pegar primeira issue com label amigo",
+      title: "Thiago: abrir board e pegar primeira issue com label thiago",
       description: "URL: https://opentodo-jet.vercel.app — mover para in_progress ao começar.",
       priority: "medium",
-      labelIds: [amigo.id],
+      labelIds: [thiago.id],
     },
     {
       title: "Definir primeira fatia de código (PR pequeno)",

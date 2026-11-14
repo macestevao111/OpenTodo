@@ -63,9 +63,9 @@ npx vercel --prod
 
 Ou conecte o repo no dashboard da Vercel e configure as mesmas env vars (Production + Preview).
 
-## Colaboração com um amigo
+## Colaboração com o Thiago
 
-1. No GitHub: **Settings → Collaborators** → convidar o amigo no repo `macestevao111/OpenTodo`.
+1. No GitHub: **Settings → Collaborators** → convidar o Thiago no repo `macestevao111/OpenTodo`.
 2. Compartilhar a URL de produção da Vercel (e `/?agent` se forem alimentar issues via Agent).
 3. Código em paralelo via branches/PRs; issues no board compartilhado (mesmo Turso).
 
@@ -78,7 +78,7 @@ Append `?agent` à URL para UI com alvos maiores e deletes explícitos (útil pa
 Guia completo: [docs/guia-colaboracao-agent.md](docs/guia-colaboracao-agent.md).
 
 ```bash
-pnpm seed:colab   # cria labels estevao/amigo/agent, projeto "Colab Agent" e issues iniciais
+pnpm seed:colab   # cria labels estevao/thiago/agent, projeto "Colab Agent" e issues iniciais
 ```
 
 No Cursor, ative a regra `.cursor/rules/opentodo-board.mdc` e peça para estruturar demandas — o Agent grava issues na API do board.

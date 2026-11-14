@@ -13,18 +13,18 @@ O OpenTodo não tem contas. Para dois humanos + um Agent:
 | Papel | Como representar |
 |-------|------------------|
 | Você | label `estevao` (azul) |
-| Amigo | label `amigo` (verde) — renomeie no board se quiser |
+| Thiago | label `thiago` (verde) |
 | Agent | label `agent` (roxo); comentários com prefixo `[agent]` |
 | Projeto | um **Project** agrupa as demandas (ex.: “Colab Agent”) |
 
 Convencão de demanda:
 
 1. Agent (ou humano) cria a **issue** no projeto.
-2. Coloca label de dono (`estevao` ou `amigo`).
+2. Coloca label de dono (`estevao` ou `thiago`).
 3. Status: `backlog` → `todo` → `in_progress` → `done`.
-4. Discussão nos **comments** (`[estevao] …`, `[amigo] …`, `[agent] …`).
+4. Discussão nos **comments** (`[estevao] …`, `[thiago] …`, `[agent] …`).
 
-## Convidar o amigo (código + board)
+## Convidar o Thiago (código + board)
 
 1. GitHub → `macestevao111/OpenTodo` → **Settings → Collaborators** → convidar.
 2. Mandar a URL do board (e `/?agent` se ele também for usar Agent).
@@ -73,7 +73,7 @@ Prompt curto que você pode colar:
 ```text
 Estruture as demandas deste trabalho no OpenTodo (https://opentodo-jet.vercel.app).
 Crie issues no projeto "Colab Agent", status backlog, prioridade coerente.
-Marque dono com label estevao ou amigo. Não invente conclusão — só quebre o trabalho.
+Marque dono com label estevao ou thiago. Não invente conclusão — só quebre o trabalho.
 Siga .cursor/rules/opentodo-board.mdc.
 ```
 
@@ -86,11 +86,11 @@ pnpm seed:colab
 # ou: BOARD_URL=https://opentodo-jet.vercel.app node scripts/seed-colab.mjs
 ```
 
-Isso cria (se ainda não existirem) labels `estevao` / `amigo` / `agent`, o projeto **Colab Agent** e issues iniciais do guia.
+Isso cria (se ainda não existirem) labels `estevao` / `thiago` / `agent`, o projeto **Colab Agent** e issues iniciais do guia.
 
 ## Fluxo diário sugerido
 
-1. Humano descreve o objetivo no Cursor (“quero X com o amigo”).  
+1. Humano descreve o objetivo no Cursor (“quero X com o Thiago”).  
 2. Agent quebra em issues no board (`seed` ou regra).  
 3. Cada um pega issues com a própria label → `in_progress`.  
 4. PR no GitHub fecha o código; issue → `done` + comentário com link do PR.
