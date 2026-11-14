@@ -17,6 +17,12 @@ import {
   normalizeImageData,
   recordActivity,
 } from "./activities.js";
+import {
+  downloadMarkdown,
+  driveConfigured,
+  extractDriveFileId,
+  uploadMarkdown,
+} from "./drive.js";
 
 type Variables = { user: AuthUser };
 const app = new OpenAPIHono<{ Variables: Variables }>();
@@ -27,6 +33,7 @@ app.get("/api/health", (c) =>
     hasUrl: Boolean(process.env.TURSO_DATABASE_URL),
     hasToken: Boolean(process.env.TURSO_AUTH_TOKEN),
     authConfigured: authConfigured(),
+    driveConfigured: driveConfigured(),
   }),
 );
 
@@ -1294,6 +1301,44 @@ app.openapi(deleteLabel, async (c) => {
     return c.json({ ok: true }, 200);
   } catch (err: unknown) {
     return c.json({ error: (err as Error).message }, 500);
+  }
+});
+
+// ── Google Drive MD tunnel (read viewer + skill upload) ────────────
+
+app.get("/api/drive/status", (c) => c.json({ configured: driveConfigured() }));
+
+app.get("/api/drive/md/:fileId", async (c) => {
+  if (!driveConfigured()) return c.json({ error: "Drive not configured" }, 503);
+  const fileId = extractDriveFileId(c.req.param("fileId") || "") || c.req.param("fileId");
+  if (!fileId) return c.json({ error: "Invalid file id" }, 400);
+  try {
+    const data = await downloadMarkdown(fileId);
+    return c.json(data);
+  } catch (err: unknown) {
+    return c.json({ error: (err as Error).message }, 502);
+  }
+});
+
+app.post("/api/drive/md", async (c) => {
+  if (!driveConfigured()) return c.json({ error: "Drive not configured" }, 503);
+  let body: { name?: string; content?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON" }, 400);
+  }
+  const name = (body.name || "").trim();
+  const content = body.content;
+  if (!name || typeof content !== "string") {
+    return c.json({ error: "name and content required" }, 400);
+  }
+  if (content.length > 1_500_000) return c.json({ error: "content too large" }, 400);
+  try {
+    const uploaded = await uploadMarkdown({ name, content });
+    return c.json(uploaded, 201);
+  } catch (err: unknown) {
+    return c.json({ error: (err as Error).message }, 502);
   }
 });
 

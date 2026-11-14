@@ -8,6 +8,7 @@ import { ProjectList } from "./components/project-list";
 import { ProjectPage } from "./components/project-page";
 import { ErrorBanner } from "./components/error-banner";
 import { Login } from "./components/login";
+import { MdViewerProvider } from "./components/md-viewer";
 import { api, ApiError } from "./api";
 
 export function App() {
@@ -92,17 +93,19 @@ function AuthenticatedApp({
 
   return (
     <AppContext.Provider value={{ ...appState, user, logout: onLogout }}>
-      <div class="layout">
-        <Sidebar />
-        <main class="main-content">
-          {appState.loading ? (
-            <div class="loading-text">Loading...</div>
-          ) : (
-            renderMain()
-          )}
-        </main>
-      </div>
-      <ErrorBanner />
+      <MdViewerProvider>
+        <div class="layout">
+          <Sidebar />
+          <main class="main-content">
+            {appState.loading ? (
+              <div class="loading-text">Loading...</div>
+            ) : (
+              renderMain()
+            )}
+          </main>
+        </div>
+        <ErrorBanner />
+      </MdViewerProvider>
     </AppContext.Provider>
   );
 }

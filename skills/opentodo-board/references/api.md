@@ -47,6 +47,16 @@ CLI: `board.mjs synthesize --project NAME --auto`.
 
 OpenAPI dump: `GET /api/openapi.json` (may be public depending on deploy; prefer this skill’s CLI).
 
+## Drive MD tunnel
+
+| Method | Path | Notes |
+|--------|------|--------|
+| GET | `/drive/status` | `{ configured }` |
+| GET | `/drive/md/:fileId` | `{ title, markdown }` via service account |
+| POST | `/drive/md` | `{ name, content }` → `{ fileId, link: "gdrive:…" }` |
+
+Citations in UI: `[label](gdrive:ID)` or Drive URL → modal markdown-it (read-only).
+
 ## Cookie jar
 
 `board.mjs` stores `{ "ot_session": "…" }` in `BOARD_COOKIE_JAR` (default `/tmp/opentodo-board-cookies.json`).

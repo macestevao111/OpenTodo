@@ -40,7 +40,10 @@ Credentials live in env / secrets — never commit passwords.
 5. **◇ Síntese (obrigatório após writes no projeto):**  
    `synthesize --project "…" --auto`  
    (ou `--body` com resumo sênior curto). Isto grava o painel + entrada no **Log ◇**.
-6. Reply in chat with `TASK-n` identifiers, board URL, and note that Síntese was refreshed
+6. **Drive MD (quando houver spec/doc longa):**  
+   `drive-upload --name nome.md --file path.md` → usar o `link` (`gdrive:ID`) nas citations.  
+   Na UI, todo `gdrive:…` / URL Drive abre no viewer imbutido (só leitura).
+7. Reply in chat with `TASK-n` identifiers, board URL, Síntese refreshed, and any `gdrive:` links
 
 Prefer project **Colab Agent** or **API Todo** when relevant. Default new issue `status=backlog`.
 
@@ -80,6 +83,8 @@ node skills/opentodo-board/scripts/board.mjs get-project "API Todo"
 node skills/opentodo-board/scripts/board.mjs project-create --name "API Todo" [--description "…"] [--icon "🔌"]
 node skills/opentodo-board/scripts/board.mjs synthesize --project "API Todo" --auto
 node skills/opentodo-board/scripts/board.mjs synthesize --project "API Todo" --body "…"
+node skills/opentodo-board/scripts/board.mjs drive-upload --name spec.md --file docs/foo.md
+node skills/opentodo-board/scripts/board.mjs drive-get gdrive:FILE_ID
 node skills/opentodo-board/scripts/board.mjs labels
 ```
 

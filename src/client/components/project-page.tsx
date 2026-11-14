@@ -6,6 +6,7 @@ import { CreateIssue } from "./create-issue";
 import { ImageAttach } from "./image-attach";
 import { LabelPill } from "./label-pill";
 import { PriorityIcon, priorityLabel } from "./priority-icon";
+import { RichText } from "./rich-text";
 import type { Activity, Issue, IssueStatus, Priority, Project, ProjectStatus } from "../types";
 
 const ISSUE_STATUSES: IssueStatus[] = ["backlog", "todo", "in_progress", "done", "cancelled"];
@@ -31,7 +32,7 @@ function ActivityCard({ a }: { a: Activity }) {
   return (
     <div class="project-activity-row">
       <span class="project-activity-kind">{kindLabel(a.kind)}</span>
-      <span class="project-activity-summary">{a.summary}</span>
+      <RichText class="project-activity-summary" text={a.summary} />
       {a.image_data ? (
         <a class="activity-image-link" href={a.image_data} target="_blank" rel="noreferrer">
           <img class="activity-image" src={a.image_data} alt="" />
@@ -280,11 +281,14 @@ export function ProjectPage({ projectId }: Props) {
                   aria-label="Project documentation"
                 />
               ) : (
-                <div class="project-doc-view">
-                  {project.description?.trim()
-                    ? project.description
-                    : "Sem documentação. Editar para adicionar objetivo, links e notas."}
-                </div>
+                <RichText
+                  class="project-doc-view"
+                  text={
+                    project.description?.trim()
+                      ? project.description
+                      : "Sem documentação. Editar para adicionar objetivo, links e notas. Cite MDs com [nome](gdrive:FILE_ID)."
+                  }
+                />
               )}
             </div>
 
@@ -310,11 +314,14 @@ export function ProjectPage({ projectId }: Props) {
                   aria-label="Síntese do projeto"
                 />
               ) : (
-                <div class="project-doc-view project-synthesis-view">
-                  {project.synthesis?.trim()
-                    ? project.synthesis
-                    : "Ainda sem Síntese. A skill opentodo-board atualiza este painel após mudanças no board; humanos podem editar."}
-                </div>
+                <RichText
+                  class="project-doc-view project-synthesis-view"
+                  text={
+                    project.synthesis?.trim()
+                      ? project.synthesis
+                      : "Ainda sem Síntese. A skill atualiza este painel; cite MDs com gdrive:FILE_ID."
+                  }
+                />
               )}
               <div class="project-synthesis-log">
                 <div class="project-panel-title">Log ◇</div>
@@ -417,7 +424,9 @@ export function ProjectPage({ projectId }: Props) {
                   </div>
                 </div>
                 <div class="project-issue-desc">
-                  {selected.description?.trim() || <span class="muted">Sem descrição</span>}
+                  {selected.description?.trim()
+                    ? <RichText text={selected.description} />
+                    : <span class="muted">Sem descrição</span>}
                 </div>
                 <div class="project-activities">
                   <div class="project-panel-title">Activities · reply</div>

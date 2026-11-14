@@ -95,6 +95,13 @@ pnpm board -- login
 pnpm board -- issues --project "Colab Agent"
 ```
 
+### Google Drive MD (viewer imbutido)
+
+1. Criar service account no Google Cloud e partilhar uma pasta do Drive com o e-mail da SA (Editor).
+2. Env: `GOOGLE_SERVICE_ACCOUNT_JSON` (JSON ou base64) + `DRIVE_FOLDER_ID`.
+3. Citar nos textos: `[spec](gdrive:FILE_ID)` — clique abre modal markdown-it (só leitura).
+4. Upload: `pnpm board -- drive-upload --name foo.md --file ./foo.md`
+
 ```bash
 pnpm seed:colab   # cria labels estevao/amigo/agent, projeto "Colab Agent" e issues iniciais
 ```

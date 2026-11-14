@@ -29,9 +29,12 @@ Commands:
   project-create --name NAME [--description D] [--icon I] [--lead USER]
   get-project <id|NAME>
   synthesize --project NAME [--body TEXT | --auto]   # ◇ Síntese
+  drive-upload --name FILE.md --file path/to.md | --content "…"
+  drive-get <fileId|gdrive:ID>
   labels
 
 Env: BOARD_URL BOARD_USER BOARD_PASS [BOARD_COOKIE_JAR]
+     (server) GOOGLE_SERVICE_ACCOUNT_JSON DRIVE_FOLDER_ID
 `);
   process.exit(code);
 }
@@ -343,6 +346,26 @@ async function main() {
           log_synthesis: true,
         });
         console.log(JSON.stringify({ brand: "◇ Síntese", ...data }, null, 2));
+        break;
+      }
+      case "drive-upload": {
+        if (!args.name) throw new Error("drive-upload requires --name");
+        let content = args.content || "";
+        if (args.file) {
+          const { readFileSync } = await import("node:fs");
+          content = readFileSync(args.file, "utf8");
+        }
+        if (!content) throw new Error("drive-upload requires --file or --content");
+        const data = await api("POST", "/api/drive/md", { name: args.name, content });
+        console.log(JSON.stringify(data, null, 2));
+        break;
+      }
+      case "drive-get": {
+        const ref = args._[0];
+        if (!ref) throw new Error("drive-get requires file id or gdrive:…");
+        const id = ref.replace(/^gdrive:/i, "");
+        const data = await api("GET", `/api/drive/md/${encodeURIComponent(id)}`);
+        console.log(JSON.stringify(data, null, 2));
         break;
       }
       case "labels":
