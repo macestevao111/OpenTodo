@@ -63,6 +63,7 @@ node skills/opentodo-board/scripts/board.mjs comment TASK-12 --body "[agent] …
 node skills/opentodo-board/scripts/board.mjs label TASK-12 --add estevao
 node skills/opentodo-board/scripts/board.mjs label TASK-12 --remove thiago
 node skills/opentodo-board/scripts/board.mjs projects
+node skills/opentodo-board/scripts/board.mjs project-create --name "API Todo" [--description "…"] [--icon "🔌"]
 node skills/opentodo-board/scripts/board.mjs labels
 ```
 

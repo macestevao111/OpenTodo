@@ -26,6 +26,7 @@ Commands:
   comment <TASK-n|id> --body TEXT
   label <TASK-n|id> --add NAME | --remove NAME
   projects
+  project-create --name NAME [--description D] [--icon I] [--lead USER]
   labels
 
 Env: BOARD_URL BOARD_USER BOARD_PASS [BOARD_COOKIE_JAR]
@@ -284,6 +285,20 @@ async function main() {
       case "projects":
         console.log(JSON.stringify(await api("GET", "/api/projects/all"), null, 2));
         break;
+      case "project-create": {
+        if (!args.name) throw new Error("project-create requires --name");
+        const body = {
+          name: args.name,
+          icon: args.icon || "📋",
+          description: args.description || "",
+          status: "started",
+          priority: args.priority || "high",
+          lead: args.lead || process.env.BOARD_USER || "estevao",
+        };
+        const data = await api("POST", "/api/projects", body);
+        console.log(JSON.stringify(data, null, 2));
+        break;
+      }
       case "labels":
         console.log(JSON.stringify(await api("GET", "/api/labels/all"), null, 2));
         break;
