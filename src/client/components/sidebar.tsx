@@ -8,7 +8,7 @@ const NAV_ITEMS: { view: View; label: string; icon: typeof ListTodo }[] = [
 ];
 
 export function Sidebar() {
-  const { view, setView, stats, selectedIssue, selectIssue } = useApp();
+  const { view, setView, stats, selectedIssue, selectIssue, user, logout } = useApp();
 
   const counts: Record<View, number> = {
     issues: stats.issues,
@@ -46,6 +46,12 @@ export function Sidebar() {
           </button>
         ))}
       </nav>
+      <div class="sidebar-user">
+        <div class="sidebar-user-name">{user}</div>
+        <button type="button" class="sidebar-logout" onClick={logout}>
+          Sair
+        </button>
+      </div>
     </aside>
   );
 }

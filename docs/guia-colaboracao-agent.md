@@ -4,7 +4,7 @@ Board ao vivo: https://opentodo-jet.vercel.app
 Modo Agent (UI): https://opentodo-jet.vercel.app/?agent  
 API base: `https://opentodo-jet.vercel.app/api`
 
-> O board está **aberto sem senha**. Trate a URL como semi-privada.
+> Login obrigatório: `estevao` ou `thiago` (senhas em `AUTH_USERS` na Vercel). Cookie HttpOnly.
 
 ## Modelo mínimo (sem login)
 
@@ -13,16 +13,31 @@ O OpenTodo não tem contas. Para dois humanos + um Agent:
 | Papel | Como representar |
 |-------|------------------|
 | Você | label `estevao` (azul) |
-| Amigo | label `amigo` (verde) — renomeie no board se quiser |
+| Thiago | label `thiago` (verde) |
 | Agent | label `agent` (roxo); comentários com prefixo `[agent]` |
 | Projeto | um **Project** agrupa as demandas (ex.: “Colab Agent”) |
 
 Convencão de demanda:
 
 1. Agent (ou humano) cria a **issue** no projeto.
-2. Coloca label de dono (`estevao` ou `amigo`).
+2. Coloca label de dono (`estevao` ou `thiago`).
 3. Status: `backlog` → `todo` → `in_progress` → `done`.
-4. Discussão nos **comments** (`[estevao] …`, `[amigo] …`, `[agent] …`).
+4. Discussão nos **comments** (`[estevao] …`, `[thiago] …`, `[agent] …`).
+
+### Formato da description (obrigatório)
+
+Tom de sênior: breve, concreto, sem preâmbulo.
+
+```
+Problema: <o que está errado ou em falta>
+Solução: <o resultado desejado, em uma frase>
+Como:
+1. <passo concreto>
+2. <passo concreto>
+3. <passo concreto>
+```
+
+Passos apontam comando, URL, arquivo ou ação na UI — não princípios abstratos.
 
 ## Convidar o amigo (código + board)
 
@@ -32,49 +47,26 @@ Convencão de demanda:
 
 ## Como o Agent “define demandas automaticamente”
 
-Há três jeitos. O mais estável no Cursor é o **B**.
-
-### A) UI Agent (browser)
-
-1. Abrir https://opentodo-jet.vercel.app/?agent  
-2. Pedir ao Agent de browser (OpenClaw, Browser Use, etc.) para criar issues/projetos pelos botões grandes.  
-3. Bom para demos; mais frágil que a API.
-
-### B) API REST (recomendado no Cursor)
-
-O Agent chama HTTP no mesmo origin/produção. Exemplos:
+**Canónico:** skill [`skills/opentodo-board/`](../skills/opentodo-board/SKILL.md) (API + CLI). Espelhada em `.cursor/skills/`, `.claude/skills/`, `.agents/skills/`. Ver [`AGENTS.md`](../AGENTS.md).
 
 ```bash
-# Criar projeto
-curl -sS -X POST https://opentodo-jet.vercel.app/api/projects \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Colab Agent","icon":"🤝","description":"Demandas compartilhadas","lead":"estevao"}'
-
-# Criar demanda
-curl -sS -X POST https://opentodo-jet.vercel.app/api/issues \
-  -H 'Content-Type: application/json' \
-  -d '{"title":"Definir escopo do MVP","description":"…","status":"backlog","priority":"high","project_id":1}'
-
-# Etiquetar dono (depois de saber o id da label)
-curl -sS -X POST https://opentodo-jet.vercel.app/api/issues/1/labels \
-  -H 'Content-Type: application/json' \
-  -d '{"label_id":1}'
+export BOARD_URL=https://opentodo-jet.vercel.app
+export BOARD_USER=estevao   # ou thiago
+export BOARD_PASS='…'
+pnpm board -- login
+pnpm board -- create --title "…" --description "Problema: …"$'\n'"Solução: …"$'\n'"Como:"$'\n'"1. …" \
+  --project "Colab Agent" --labels estevao
+pnpm board -- issues --project "Colab Agent"
 ```
 
-Endpoints úteis: `/api/stats`, `/api/issues`, `/api/projects`, `/api/labels`, `/api/issues/:id/comments`.  
-OpenAPI: `/api/openapi.json`.
+UI `/?agent` continua útil para demos no browser; para agentes de código use só a skill/CLI.
 
-### C) Regra no Cursor (este repo)
-
-Arquivo [`.cursor/rules/opentodo-board.mdc`](../.cursor/rules/opentodo-board.mdc): quando o humano pedir para **estruturar / quebrar demandas**, o Agent cria issues no board via API (não só no chat).
-
-Prompt curto que você pode colar:
+Prompt curto:
 
 ```text
-Estruture as demandas deste trabalho no OpenTodo (https://opentodo-jet.vercel.app).
-Crie issues no projeto "Colab Agent", status backlog, prioridade coerente.
-Marque dono com label estevao ou amigo. Não invente conclusão — só quebre o trabalho.
-Siga .cursor/rules/opentodo-board.mdc.
+Estruture as demandas deste trabalho no OpenTodo.
+Use a skill opentodo-board (pnpm board). Projeto Colab Agent.
+Description Problema / Solução / Como. Labels estevao ou thiago.
 ```
 
 ## Seed do projeto “Colab Agent”

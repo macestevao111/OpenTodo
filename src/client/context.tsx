@@ -44,6 +44,9 @@ export interface AppContextValue {
   loading: boolean;
   error: string | null;
   setError: (msg: string | null) => void;
+
+  user: string;
+  logout: () => void;
 }
 
 export const AppContext = createContext<AppContextValue>(null!);

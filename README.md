@@ -6,7 +6,7 @@ Fork of [clawnify/OpenTodo](https://github.com/clawnify/OpenTodo) adapted to run
 - **Agent mode:** https://opentodo-jet.vercel.app/?agent  
 - **Repo:** https://github.com/macestevao111/OpenTodo  
 
-> **Aviso:** o board está **aberto sem senha**. Qualquer pessoa com a URL pode criar e editar issues.
+> **Auth:** login com `estevao` ou `thiago` (cookie HttpOnly). Sem sessão → API 401.
 
 ## Stack
 
@@ -31,7 +31,7 @@ git clone https://github.com/macestevao111/OpenTodo.git
 cd OpenTodo
 pnpm install
 cp .env.example .env
-# preencha TURSO_DATABASE_URL e TURSO_AUTH_TOKEN
+# preencha TURSO_* , AUTH_SECRET e AUTH_USERS=estevao:…,thiago:…
 pnpm db:migrate
 pnpm dev
 ```
@@ -58,10 +58,21 @@ Cole URL e token no `.env`, depois `pnpm db:migrate`.
 npx vercel link
 npx vercel env add TURSO_DATABASE_URL
 npx vercel env add TURSO_AUTH_TOKEN
+npx vercel env add AUTH_SECRET
+npx vercel env add AUTH_USERS   # estevao:senha,thiago:senha
 npx vercel --prod
 ```
 
 Ou conecte o repo no dashboard da Vercel e configure as mesmas env vars (Production + Preview).
+
+### Login via curl (Agent / scripts)
+
+```bash
+curl -sS -c /tmp/ot.txt -b /tmp/ot.txt -X POST https://opentodo-jet.vercel.app/api/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"estevao","password":"…"}'
+curl -sS -c /tmp/ot.txt -b /tmp/ot.txt https://opentodo-jet.vercel.app/api/me
+```
 
 ## Colaboração com um amigo
 
@@ -75,7 +86,14 @@ Append `?agent` à URL para UI com alvos maiores e deletes explícitos (útil pa
 
 ## Dois usuários + Agent
 
-Guia completo: [docs/guia-colaboracao-agent.md](docs/guia-colaboracao-agent.md).
+Guia: [docs/guia-colaboracao-agent.md](docs/guia-colaboracao-agent.md).  
+Skill portátil (Cursor / Claude / Codex / Gemini): [skills/opentodo-board/SKILL.md](skills/opentodo-board/SKILL.md).
+
+```bash
+export BOARD_USER=estevao BOARD_PASS='…'
+pnpm board -- login
+pnpm board -- issues --project "Colab Agent"
+```
 
 ```bash
 pnpm seed:colab   # cria labels estevao/amigo/agent, projeto "Colab Agent" e issues iniciais

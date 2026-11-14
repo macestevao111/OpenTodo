@@ -1,16 +1,63 @@
 // @ts-nocheck — OpenAPI zod helpers vs Vercel TS check; runtime is fine
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { query, get, run } from "./db.js";
+import {
+  authConfigured,
+  clearSessionCookie,
+  readSession,
+  requireAuth,
+  setSessionCookie,
+  verifyCredentials,
+  type AuthUser,
+} from "./auth.js";
 
-const app = new OpenAPIHono();
+type Variables = { user: AuthUser };
+const app = new OpenAPIHono<{ Variables: Variables }>();
 
 app.get("/api/health", (c) =>
   c.json({
     ok: true,
     hasUrl: Boolean(process.env.TURSO_DATABASE_URL),
     hasToken: Boolean(process.env.TURSO_AUTH_TOKEN),
+    authConfigured: authConfigured(),
   }),
 );
+
+app.post("/api/login", async (c) => {
+  if (!authConfigured()) {
+    return c.json({ error: "Auth not configured" }, 503);
+  }
+  let body: { username?: string; password?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON" }, 400);
+  }
+  const username = (body.username || "").trim().toLowerCase();
+  const password = body.password || "";
+  if (!username || !password) {
+    return c.json({ error: "username and password required" }, 400);
+  }
+  if (!verifyCredentials(username, password)) {
+    return c.json({ error: "Invalid credentials" }, 401);
+  }
+  setSessionCookie(c, username);
+  return c.json({ user: { username } });
+});
+
+app.post("/api/logout", (c) => {
+  clearSessionCookie(c);
+  return c.json({ ok: true });
+});
+
+app.get("/api/me", (c) => {
+  if (!authConfigured()) {
+    return c.json({ error: "Auth not configured" }, 503);
+  }
+  const user = readSession(c);
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  return c.json({ user });
+});
 
 app.doc("/api/openapi.json", {
   openapi: "3.0.0",
@@ -40,6 +87,8 @@ app.use("/api/*", async (_c, next) => {
   await ensureSeeded();
   await next();
 });
+
+app.use("/api/*", requireAuth);
 
 // ── Shared Schemas ─────────────────────────────────────────────────
 

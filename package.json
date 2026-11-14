@@ -8,6 +8,7 @@
     "build": "vite build",
     "db:migrate": "node --env-file=.env scripts/migrate.mjs",
     "seed:colab": "node scripts/seed-colab.mjs",
+    "board": "node skills/opentodo-board/scripts/board.mjs",
     "start:api": "node --env-file=.env --import tsx src/server/dev.ts"
   },
   "dependencies": {

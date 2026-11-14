@@ -1,18 +1,13 @@
 ---
-description: Estruturar demandas no board OpenTodo (API) quando o humano pedir
+description: Demandas OpenTodo — usar a skill opentodo-board (API CLI)
 globs:
 alwaysApply: false
 ---
 
 # OpenTodo board
 
-Quando o humano pedir para estruturar, quebrar, planejar ou registrar **demandas / tarefas / issues** deste trabalho colaborativo:
+Quando o humano pedir para estruturar, listar, criar ou atualizar **demandas / issues** no OpenTodo:
 
-1. Use a API em `https://opentodo-jet.vercel.app/api` (ou `BOARD_URL` se definida).
-2. Prefira o projeto **Colab Agent**. Se não existir, crie com `POST /api/projects`.
-3. Crie cada demanda com `POST /api/issues` (`status: backlog` por padrão).
-4. Aplique label de dono: `estevao` ou `amigo` (`POST /api/issues/:id/labels`). Use `agent` só para itens gerados sem dono humano ainda.
-5. Não marque `done` sem evidência. Não invente escopo além do pedido.
-6. Ao terminar, liste no chat os identifiers (`TASK-n`) e links `https://opentodo-jet.vercel.app` (view issues).
-
-Referência: `docs/guia-colaboracao-agent.md`.
+1. Seguir a skill [`.cursor/skills/opentodo-board/SKILL.md`](../skills/opentodo-board/SKILL.md) (canónico: `skills/opentodo-board/`).
+2. Usar o CLI: `pnpm board -- …` ou `node skills/opentodo-board/scripts/board.mjs …`.
+3. Não automatizar o browser (`/?agent`). API + cookie apenas.

@@ -32,7 +32,7 @@ async function main() {
 
   const { labels: existingLabels } = await api("GET", "/api/labels/all");
   const estevao = await ensureLabel("estevao", "#3b82f6", existingLabels);
-  const amigo = await ensureLabel("amigo", "#22c55e", existingLabels);
+  const thiago = await ensureLabel("thiago", "#22c55e", existingLabels);
   const agent = await ensureLabel("agent", "#a855f7", existingLabels);
 
   const { projects } = await api("GET", "/api/projects/all");
@@ -56,34 +56,56 @@ async function main() {
   const starters = [
     {
       title: "Alinhar objetivo do trabalho em paralelo",
-      description:
-        "Combinar o que é sucesso em 1–2 frases. Dono: os dois. Ref: docs/guia-colaboracao-agent.md",
+      description: `Problema: sem objetivo comum, o trabalho em paralelo diverge.
+Solução: escrever sucesso em 1–2 frases e partilhar no board.
+Como:
+1. Vocês dois alinham o resultado esperado (ex.: “MVP X em 1 semana”)
+2. Registar num comentário desta issue ou no README do projeto
+3. Mover para done quando os dois confirmarem`,
       priority: "high",
-      labelIds: [estevao.id, amigo.id],
+      labelIds: [estevao.id, thiago.id],
     },
     {
-      title: "Convidar amigo no GitHub (Collaborators)",
-      description: "Repo macestevao111/OpenTodo → Settings → Collaborators.",
+      title: "Convidar thiago no GitHub (Collaborators)",
+      description: `Problema: o Thiago ainda não tem acesso ao repo no GitHub.
+Solução: convite de Collaborator no fork macestevao111/OpenTodo.
+Como:
+1. GitHub → Settings → Collaborators → Add people
+2. Convidar a conta do Thiago
+3. Ele aceita o e-mail; depois clona e trabalha em branch/PR`,
       priority: "high",
       labelIds: [estevao.id],
     },
     {
       title: "Configurar Agent no Cursor com a regra opentodo-board",
-      description:
-        "Usar .cursor/rules/opentodo-board.mdc e o prompt do guia para o Agent criar issues via API.",
+      description: `Problema: o Agent só fala no chat e não grava demandas no board.
+Solução: regra Cursor + API do OpenTodo.
+Como:
+1. Abrir o clone; garantir .cursor/rules/opentodo-board.mdc
+2. Colar o prompt do docs/guia-colaboracao-agent.md
+3. Pedir para estruturar demandas; conferir TASK novas no board`,
       priority: "medium",
       labelIds: [estevao.id, agent.id],
     },
     {
-      title: "Amigo: abrir board e pegar primeira issue com label amigo",
-      description: "URL: https://opentodo-jet.vercel.app — mover para in_progress ao começar.",
+      title: "Thiago: abrir board e pegar primeira issue com label thiago",
+      description: `Problema: o Thiago precisa entrar no fluxo sem fricção.
+Solução: abrir o board, pegar uma issue com label thiago e avançar status.
+Como:
+1. Abrir https://opentodo-jet.vercel.app
+2. Filtrar/encontrar issue com label thiago
+3. Mudar para in_progress ao começar; done ao terminar`,
       priority: "medium",
-      labelIds: [amigo.id],
+      labelIds: [thiago.id],
     },
     {
       title: "Definir primeira fatia de código (PR pequeno)",
-      description:
-        "Agent pode quebrar em subtarefas; humanos implementam em branches/PRs.",
+      description: `Problema: fatia grande demais bloqueia PR paralelo.
+Solução: uma mudança pequena, reviewável, num PR.
+Como:
+1. Agent (ou humano) propõe o menor passo útil no comentário
+2. Abrir branch a partir de main; implementar só esse passo
+3. Abrir PR; marcar esta issue done com link do PR`,
       priority: "medium",
       labelIds: [agent.id, estevao.id],
     },
