@@ -10,6 +10,12 @@ import {
   verifyCredentials,
   type AuthUser,
 } from "./auth.js";
+import {
+  actorFrom,
+  ensureActivitiesTable,
+  issueProjectId,
+  recordActivity,
+} from "./activities.js";
 
 type Variables = { user: AuthUser };
 const app = new OpenAPIHono<{ Variables: Variables }>();
@@ -77,6 +83,7 @@ async function ensureSeeded(): Promise<void> {
   try {
     await run("INSERT OR IGNORE INTO _meta (key, value) VALUES (?, ?)", ["issue_counter", "0"]);
     await run("INSERT OR IGNORE INTO _meta (key, value) VALUES (?, ?)", ["identifier_prefix", "TASK"]);
+    await ensureActivitiesTable();
     seeded = true;
   } catch {
     seeded = false;
@@ -357,6 +364,14 @@ app.openapi(createIssue, async (c) => {
     );
 
     const issue = await get("SELECT * FROM issues WHERE identifier = ?", [identifier]);
+    await recordActivity({
+      projectId: body.project_id || null,
+      issueId: issue?.id,
+      kind: "created",
+      actor: actorFrom(c),
+      summary: `Created ${identifier}: ${title}`,
+      meta: { identifier, title },
+    });
     return c.json({ issue }, 201);
   } catch (err: unknown) {
     return c.json({ error: (err as Error).message }, 500);
@@ -437,6 +452,9 @@ app.openapi(updateIssue, async (c) => {
     if (isNaN(id)) return c.json({ error: "Invalid ID" }, 400);
 
     const body = c.req.valid("json");
+    const before = await get("SELECT * FROM issues WHERE id = ?", [id]);
+    if (!before) return c.json({ error: "Issue not found" }, 404);
+
     const setClauses: string[] = [];
     const setParams: unknown[] = [];
 
@@ -457,6 +475,28 @@ app.openapi(updateIssue, async (c) => {
     if (result.changes === 0) return c.json({ error: "Issue not found" }, 404);
 
     const issue = await get("SELECT * FROM issues WHERE id = ?", [id]);
+    const actor = actorFrom(c);
+    const projectId = issue?.project_id ?? before.project_id;
+    if (body.status !== undefined && body.status !== before.status) {
+      await recordActivity({
+        projectId,
+        issueId: id,
+        kind: "status_changed",
+        actor,
+        summary: `Status ${before.status} → ${body.status}`,
+        meta: { from: before.status, to: body.status },
+      });
+    }
+    if (body.priority !== undefined && body.priority !== before.priority) {
+      await recordActivity({
+        projectId,
+        issueId: id,
+        kind: "priority_changed",
+        actor,
+        summary: `Priority ${before.priority} → ${body.priority}`,
+        meta: { from: before.priority, to: body.priority },
+      });
+    }
     return c.json({ issue }, 200);
   } catch (err: unknown) {
     return c.json({ error: (err as Error).message }, 500);
@@ -521,6 +561,15 @@ app.openapi(addIssueLabel, async (c) => {
 
     const body = c.req.valid("json");
     await run("INSERT OR IGNORE INTO issue_labels (issue_id, label_id) VALUES (?, ?)", [issueId, body.label_id]);
+    const label = await get("SELECT name FROM labels WHERE id = ?", [body.label_id]);
+    await recordActivity({
+      projectId: await issueProjectId(issueId),
+      issueId,
+      kind: "label_added",
+      actor: actorFrom(c),
+      summary: `Label +${label?.name || body.label_id}`,
+      meta: { label_id: body.label_id, name: label?.name },
+    });
     return c.json({ ok: true }, 201);
   } catch (err: unknown) {
     return c.json({ error: (err as Error).message }, 500);
@@ -552,7 +601,16 @@ app.openapi(removeIssueLabel, async (c) => {
     const labelId = parseInt(params.lid, 10);
     if (isNaN(issueId) || isNaN(labelId)) return c.json({ error: "Invalid ID" }, 400);
 
+    const label = await get("SELECT name FROM labels WHERE id = ?", [labelId]);
     await run("DELETE FROM issue_labels WHERE issue_id = ? AND label_id = ?", [issueId, labelId]);
+    await recordActivity({
+      projectId: await issueProjectId(issueId),
+      issueId,
+      kind: "label_removed",
+      actor: actorFrom(c),
+      summary: `Label −${label?.name || labelId}`,
+      meta: { label_id: labelId, name: label?.name },
+    });
     return c.json({ ok: true }, 200);
   } catch (err: unknown) {
     return c.json({ error: (err as Error).message }, 500);
@@ -618,7 +676,53 @@ app.openapi(createComment, async (c) => {
 
     const result = await run("INSERT INTO comments (issue_id, content) VALUES (?, ?)", [issueId, content]);
     const comment = await get("SELECT * FROM comments WHERE id = ?", [result.lastInsertRowid]);
+    const preview = content.length > 120 ? content.slice(0, 117) + "…" : content;
+    await recordActivity({
+      projectId: await issueProjectId(issueId),
+      issueId,
+      kind: "commented",
+      actor: actorFrom(c),
+      summary: preview,
+      meta: { comment_id: comment?.id },
+    });
     return c.json({ comment }, 201);
+  } catch (err: unknown) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
+});
+
+const listIssueActivities = createRoute({
+  method: "get",
+  path: "/api/issues/{id}/activities",
+  tags: ["Activities"],
+  summary: "Activity feed for an issue (newest first)",
+  request: { params: IdParam },
+  responses: {
+    200: { description: "Activities", content: { "application/json": { schema: z.object({ activities: z.array(z.object({
+      id: z.number().int(),
+      project_id: z.number().int().nullable(),
+      issue_id: z.number().int().nullable(),
+      kind: z.string(),
+      actor: z.string(),
+      summary: z.string(),
+      meta: z.string(),
+      created_at: z.string(),
+    })) }) } } },
+    400: { description: "Invalid ID", content: { "application/json": { schema: ErrorSchema } } },
+    500: { description: "Server error", content: { "application/json": { schema: ErrorSchema } } },
+  },
+});
+
+app.openapi(listIssueActivities, async (c) => {
+  try {
+    const { id: idStr } = c.req.valid("param");
+    const issueId = parseInt(idStr, 10);
+    if (isNaN(issueId)) return c.json({ error: "Invalid issue ID" }, 400);
+    const activities = await query(
+      "SELECT * FROM activities WHERE issue_id = ? ORDER BY created_at DESC, id DESC LIMIT 200",
+      [issueId],
+    );
+    return c.json({ activities }, 200);
   } catch (err: unknown) {
     return c.json({ error: (err as Error).message }, 500);
   }
@@ -726,6 +830,39 @@ app.openapi(allProjects, async (c) => {
   try {
     const projects = await query("SELECT id, name, icon FROM projects ORDER BY name");
     return c.json({ projects }, 200);
+  } catch (err: unknown) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
+});
+
+const getProject = createRoute({
+  method: "get",
+  path: "/api/projects/{id}",
+  tags: ["Projects"],
+  summary: "Get project by id with issue counts",
+  request: { params: IdParam },
+  responses: {
+    200: { description: "Project", content: { "application/json": { schema: z.object({ project: ProjectSchema }) } } },
+    400: { description: "Invalid ID", content: { "application/json": { schema: ErrorSchema } } },
+    404: { description: "Not found", content: { "application/json": { schema: ErrorSchema } } },
+    500: { description: "Server error", content: { "application/json": { schema: ErrorSchema } } },
+  },
+});
+
+app.openapi(getProject, async (c) => {
+  try {
+    const { id: idStr } = c.req.valid("param");
+    const id = parseInt(idStr, 10);
+    if (isNaN(id)) return c.json({ error: "Invalid ID" }, 400);
+    const project = await get(
+      `SELECT p.*,
+         (SELECT COUNT(*) FROM issues WHERE project_id = p.id) as issue_count,
+         (SELECT COUNT(*) FROM issues WHERE project_id = p.id AND status = 'done') as done_count
+       FROM projects p WHERE p.id = ?`,
+      [id],
+    );
+    if (!project) return c.json({ error: "Project not found" }, 404);
+    return c.json({ project }, 200);
   } catch (err: unknown) {
     return c.json({ error: (err as Error).message }, 500);
   }

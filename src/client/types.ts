@@ -1,8 +1,19 @@
-export type View = "issues" | "projects";
+export type View = "issues" | "projects" | "project";
 
 export type IssueStatus = "backlog" | "todo" | "in_progress" | "done" | "cancelled";
 export type Priority = "none" | "urgent" | "high" | "medium" | "low";
-export type ProjectStatus = "backlog" | "planned" | "in_progress" | "completed" | "cancelled";
+export type ProjectStatus = "backlog" | "planned" | "started" | "in_progress" | "completed" | "cancelled";
+
+export interface Activity {
+  id: number;
+  project_id: number | null;
+  issue_id: number | null;
+  kind: string;
+  actor: string;
+  summary: string;
+  meta: string;
+  created_at: string;
+}
 
 export interface Issue {
   id: number;

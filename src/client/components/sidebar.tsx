@@ -2,7 +2,9 @@ import { CircleCheck, ListTodo, FolderKanban } from "lucide-preact";
 import { useApp } from "../context";
 import type { View } from "../types";
 
-const NAV_ITEMS: { view: View; label: string; icon: typeof ListTodo }[] = [
+type NavView = Extract<View, "issues" | "projects">;
+
+const NAV_ITEMS: { view: NavView; label: string; icon: typeof ListTodo }[] = [
   { view: "issues", label: "My Issues", icon: ListTodo },
   { view: "projects", label: "Projects", icon: FolderKanban },
 ];
@@ -10,16 +12,18 @@ const NAV_ITEMS: { view: View; label: string; icon: typeof ListTodo }[] = [
 export function Sidebar() {
   const { view, setView, stats, selectedIssue, selectIssue, user, logout } = useApp();
 
-  const counts: Record<View, number> = {
+  const counts: Record<NavView, number> = {
     issues: stats.issues,
     projects: stats.projects,
   };
 
-  const handleNav = (v: View) => {
+  const handleNav = (v: NavView) => {
     if (selectedIssue) selectIssue(null);
     setView(v);
     const url = new URL(window.location.href);
     url.searchParams.set("view", v);
+    url.searchParams.delete("id");
+    url.searchParams.delete("issue");
     window.history.pushState(null, "", url.pathname + url.search);
   };
 
@@ -36,7 +40,7 @@ export function Sidebar() {
         {NAV_ITEMS.map((item) => (
           <button
             key={item.view}
-            class={`sidebar-item ${view === item.view && !selectedIssue ? "active" : ""}`}
+            class={`sidebar-item ${(view === item.view || (item.view === "projects" && view === "project")) && !selectedIssue ? "active" : ""}`}
             onClick={() => handleNav(item.view)}
             aria-label={`View ${item.label}`}
           >

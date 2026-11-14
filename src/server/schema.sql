@@ -51,6 +51,18 @@ CREATE TABLE IF NOT EXISTS comments (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- Activity feed (issue + project scoped)
+CREATE TABLE IF NOT EXISTS activities (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+  issue_id INTEGER REFERENCES issues(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  actor TEXT NOT NULL DEFAULT '',
+  summary TEXT NOT NULL DEFAULT '',
+  meta TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Auto-incrementing identifier counter
 CREATE TABLE IF NOT EXISTS _meta (
   key TEXT PRIMARY KEY,
@@ -65,3 +77,5 @@ CREATE INDEX IF NOT EXISTS idx_issues_status ON issues(status);
 CREATE INDEX IF NOT EXISTS idx_issue_labels_issue ON issue_labels(issue_id);
 CREATE INDEX IF NOT EXISTS idx_issue_labels_label ON issue_labels(label_id);
 CREATE INDEX IF NOT EXISTS idx_comments_issue ON comments(issue_id);
+CREATE INDEX IF NOT EXISTS idx_activities_issue ON activities(issue_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_activities_project ON activities(project_id, created_at);

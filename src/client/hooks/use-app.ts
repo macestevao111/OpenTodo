@@ -6,8 +6,22 @@ import type {
 } from "../types";
 import type { AppContextValue } from "../context";
 
+function initialView(): View {
+  const v = new URLSearchParams(window.location.search).get("view");
+  if (v === "project" || v === "projects" || v === "issues") return v;
+  return "issues";
+}
+
+function initialProjectId(): number | null {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("view") !== "project") return null;
+  const id = parseInt(params.get("id") || "", 10);
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
 export function useAppState(isAgent: boolean): AppContextValue {
-  const [view, setView] = useState<View>(() => new URLSearchParams(window.location.search).get("view") === "projects" ? "projects" : "issues");
+  const [view, setView] = useState<View>(initialView);
+  const [projectId, setProjectId] = useState<number | null>(initialProjectId);
   const [stats, setStats] = useState<Stats>({ issues: 0, projects: 0, labels: 0 });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -193,8 +207,19 @@ export function useAppState(isAgent: boolean): AppContextValue {
     await Promise.all([fetchStats(), fetchLookups()]);
   }, [projectsPag, fetchProjects, fetchStats, fetchLookups]);
 
+  const openProject = useCallback((id: number) => {
+    setSelectedIssue(null);
+    setProjectId(id);
+    setView("project");
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", "project");
+    url.searchParams.set("id", String(id));
+    url.searchParams.delete("issue");
+    window.history.pushState(null, "", url.pathname + url.search);
+  }, []);
+
   return {
-    view, setView, isAgent, stats,
+    view, setView, projectId, openProject, isAgent, stats,
     issues, issuesPag, setIssuesPage, issuesSearch, setIssuesSearch,
     addIssue, updateIssue, deleteIssue,
     selectedIssue, selectIssue,

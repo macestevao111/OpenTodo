@@ -5,6 +5,7 @@ import { Sidebar } from "./components/sidebar";
 import { IssueList } from "./components/issue-list";
 import { IssueDetail } from "./components/issue-detail";
 import { ProjectList } from "./components/project-list";
+import { ProjectPage } from "./components/project-page";
 import { ErrorBanner } from "./components/error-banner";
 import { Login } from "./components/login";
 import { api, ApiError } from "./api";
@@ -81,6 +82,9 @@ function AuthenticatedApp({
   const appState = useAppState(isAgent);
 
   const renderMain = () => {
+    if (appState.view === "project" && appState.projectId) {
+      return <ProjectPage projectId={appState.projectId} />;
+    }
     if (appState.selectedIssue) return <IssueDetail />;
     if (appState.view === "projects") return <ProjectList />;
     return <IssueList />;

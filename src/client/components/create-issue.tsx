@@ -6,12 +6,20 @@ import type { IssueStatus, Priority } from "../types";
 const STATUSES: IssueStatus[] = ["backlog", "todo", "in_progress", "done"];
 const PRIORITIES: Priority[] = ["none", "urgent", "high", "medium", "low"];
 
-export function CreateIssue({ onClose }: { onClose: () => void }) {
+export function CreateIssue({
+  onClose,
+  defaultProjectId,
+}: {
+  onClose: () => void;
+  defaultProjectId?: number;
+}) {
   const { addIssue, projectLookup, setError } = useApp();
   const [title, setTitle] = useState("");
-  const [status, setStatus] = useState<IssueStatus>("todo");
+  const [status, setStatus] = useState<IssueStatus>("backlog");
   const [priority, setPriority] = useState<Priority>("none");
-  const [projectId, setProjectId] = useState<string>("");
+  const [projectId, setProjectId] = useState<string>(
+    defaultProjectId ? String(defaultProjectId) : "",
+  );
 
   const handleSubmit = async () => {
     if (!title.trim()) return;

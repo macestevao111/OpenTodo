@@ -6,13 +6,14 @@ import { Pagination } from "./pagination";
 import { CreateProject } from "./create-project";
 import type { ProjectStatus, Priority } from "../types";
 
-const PROJECT_STATUSES: ProjectStatus[] = ["backlog", "planned", "in_progress", "completed", "cancelled"];
+const PROJECT_STATUSES: ProjectStatus[] = ["backlog", "planned", "started", "in_progress", "completed", "cancelled"];
 const PRIORITIES: Priority[] = ["none", "urgent", "high", "medium", "low"];
 
 function projectStatusLabel(s: ProjectStatus): string {
   const labels: Record<ProjectStatus, string> = {
     backlog: "Backlog",
     planned: "Planned",
+    started: "Started",
     in_progress: "In Progress",
     completed: "Completed",
     cancelled: "Cancelled",
@@ -21,7 +22,7 @@ function projectStatusLabel(s: ProjectStatus): string {
 }
 
 export function ProjectList() {
-  const { projects, projectsPag, setProjectsPage, updateProject, deleteProject, stats, setError } = useApp();
+  const { projects, projectsPag, setProjectsPage, updateProject, deleteProject, stats, setError, openProject } = useApp();
   const [showCreate, setShowCreate] = useState(false);
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -96,9 +97,15 @@ export function ProjectList() {
                           />
                         ) : (
                           <span
-                            class="project-name-text"
-                            onClick={() => { setEditingId(p.id); setEditName(p.name); }}
-                            aria-label="Click to edit name"
+                            class="project-name-text project-name-link"
+                            onClick={() => openProject(p.id)}
+                            onDblClick={(e) => {
+                              e.stopPropagation();
+                              setEditingId(p.id);
+                              setEditName(p.name);
+                            }}
+                            aria-label="Open project page"
+                            title="Abrir página · duplo-clique para renomear"
                           >
                             {p.name}
                           </span>

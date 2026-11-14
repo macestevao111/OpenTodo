@@ -8,6 +8,8 @@ import type {
 export interface AppContextValue {
   view: View;
   setView: (v: View) => void;
+  projectId: number | null;
+  openProject: (id: number) => void;
   isAgent: boolean;
   stats: Stats;
 
