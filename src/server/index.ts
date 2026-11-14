@@ -1,16 +1,19 @@
-import { createApp, createRoute, z } from "@clawnify/app";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { query, get, run } from "./db.js";
 
-type Env = { Bindings: { DB: D1Database } };
+const app = new OpenAPIHono();
 
-const app = createApp<Env>({
-  title: "OpenTodo",
-  version: "1.0.0",
-  description: "A Linear-style issue tracker with projects, labels, and comments.",
+app.doc("/api/openapi.json", {
+  openapi: "3.0.0",
+  info: {
+    title: "OpenTodo",
+    version: "1.0.0",
+    description: "A Linear-style issue tracker with projects, labels, and comments.",
+  },
 });
 
-// schema.sql is applied as DDL only by the deploy pipeline, so the _meta
-// defaults are written here instead, on the first request of each isolate.
+// schema.sql is applied once via `pnpm db:migrate`; _meta defaults are
+// written here on the first request of each isolate.
 let seeded = false;
 
 async function ensureSeeded(): Promise<void> {
@@ -24,8 +27,7 @@ async function ensureSeeded(): Promise<void> {
   }
 }
 
-// Runs after createApp's own initDB middleware, so the DB is already bound.
-app.use("*", async (_c, next) => {
+app.use("/api/*", async (_c, next) => {
   await ensureSeeded();
   await next();
 });
