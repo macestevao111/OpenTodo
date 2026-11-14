@@ -3,6 +3,7 @@ import { ArrowLeft, Plus } from "lucide-preact";
 import { api } from "../api";
 import { useApp } from "../context";
 import { CreateIssue } from "./create-issue";
+import { ImageAttach } from "./image-attach";
 import { LabelPill } from "./label-pill";
 import { PriorityIcon, priorityLabel } from "./priority-icon";
 import type { Activity, Issue, IssueStatus, Priority, Project, ProjectStatus } from "../types";
@@ -20,8 +21,27 @@ function kindLabel(kind: string): string {
     label_removed: "label−",
     commented: "comment",
     synthesis: "síntese",
+    note: "nota",
+    reply: "reply",
   };
   return map[kind] || kind;
+}
+
+function ActivityCard({ a }: { a: Activity }) {
+  return (
+    <div class="project-activity-row">
+      <span class="project-activity-kind">{kindLabel(a.kind)}</span>
+      <span class="project-activity-summary">{a.summary}</span>
+      {a.image_data ? (
+        <a class="activity-image-link" href={a.image_data} target="_blank" rel="noreferrer">
+          <img class="activity-image" src={a.image_data} alt="" />
+        </a>
+      ) : null}
+      <span class="project-activity-meta muted">
+        {a.actor || "—"} · {a.created_at}
+      </span>
+    </div>
+  );
 }
 
 type Props = { projectId: number };
@@ -51,6 +71,10 @@ export function ProjectPage({ projectId }: Props) {
   const [synthLog, setSynthLog] = useState<Activity[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [comment, setComment] = useState("");
+  const [commentImage, setCommentImage] = useState("");
+  const [projectNote, setProjectNote] = useState("");
+  const [projectNoteImage, setProjectNoteImage] = useState("");
+  const [projectFeed, setProjectFeed] = useState<Activity[]>([]);
 
   const loadProject = useCallback(async () => {
     const [data, acts] = await Promise.all([
@@ -60,7 +84,9 @@ export function ProjectPage({ projectId }: Props) {
     setProject(data.project);
     setDocDraft(data.project.description || "");
     setSynthesisDraft(data.project.synthesis || "");
-    setSynthLog((acts.activities || []).filter((a) => a.kind === "synthesis"));
+    const all = acts.activities || [];
+    setSynthLog(all.filter((a) => a.kind === "synthesis"));
+    setProjectFeed(all.filter((a) => a.kind !== "synthesis"));
   }, [projectId]);
 
   const loadIssues = useCallback(async () => {
@@ -163,11 +189,28 @@ export function ProjectPage({ projectId }: Props) {
   };
 
   const submitComment = async () => {
-    if (!selected || !comment.trim()) return;
+    if (!selected || (!comment.trim() && !commentImage)) return;
     try {
-      await addComment(selected.id, comment.trim());
+      await addComment(selected.id, comment.trim() || "[imagem]", commentImage || undefined);
       setComment("");
-      await loadSelected(selected.id);
+      setCommentImage("");
+      await Promise.all([loadSelected(selected.id), loadProject()]);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const submitProjectNote = async () => {
+    if (!projectNote.trim() && !projectNoteImage) return;
+    try {
+      await api("POST", `/api/projects/${projectId}/activities`, {
+        summary: projectNote.trim() || "[imagem]",
+        image_data: projectNoteImage || undefined,
+        kind: "note",
+      });
+      setProjectNote("");
+      setProjectNoteImage("");
+      await loadProject();
     } catch (e) {
       setError((e as Error).message);
     }
@@ -329,7 +372,27 @@ export function ProjectPage({ projectId }: Props) {
 
           <div class="project-issue-detail">
             {!selected ? (
-              <div class="empty-text">Seleciona uma issue</div>
+              <div class="project-activities">
+                <div class="project-panel-title">Activity do projeto</div>
+                <div class="project-activity-list">
+                  {projectFeed.length === 0 && <div class="muted">Sem activity ainda — publica uma nota ou reply com texto/imagem</div>}
+                  {projectFeed.map((a) => <ActivityCard key={a.id} a={a} />)}
+                </div>
+                <div class="project-comment-box project-compose">
+                  <input
+                    type="text"
+                    value={projectNote}
+                    onInput={(e) => setProjectNote((e.target as HTMLInputElement).value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") submitProjectNote(); }}
+                    placeholder="Nota / reply no projeto…"
+                    aria-label="Project note"
+                  />
+                  <ImageAttach value={projectNoteImage} onChange={setProjectNoteImage} />
+                  <button type="button" class="btn btn-sm btn-primary" onClick={submitProjectNote}>
+                    Post
+                  </button>
+                </div>
+              </div>
             ) : (
               <>
                 <div class="project-issue-detail-head">
@@ -357,30 +420,23 @@ export function ProjectPage({ projectId }: Props) {
                   {selected.description?.trim() || <span class="muted">Sem descrição</span>}
                 </div>
                 <div class="project-activities">
-                  <div class="project-panel-title">Activities</div>
+                  <div class="project-panel-title">Activities · reply</div>
                   <div class="project-activity-list">
                     {activities.length === 0 && <div class="muted">Sem activities ainda</div>}
-                    {activities.map((a) => (
-                      <div key={a.id} class="project-activity-row">
-                        <span class="project-activity-kind">{kindLabel(a.kind)}</span>
-                        <span class="project-activity-summary">{a.summary}</span>
-                        <span class="project-activity-meta muted">
-                          {a.actor || "—"} · {a.created_at}
-                        </span>
-                      </div>
-                    ))}
+                    {activities.map((a) => <ActivityCard key={a.id} a={a} />)}
                   </div>
-                  <div class="project-comment-box">
+                  <div class="project-comment-box project-compose">
                     <input
                       type="text"
                       value={comment}
                       onInput={(e) => setComment((e.target as HTMLInputElement).value)}
                       onKeyDown={(e) => { if (e.key === "Enter") submitComment(); }}
-                      placeholder="Add comment…"
+                      placeholder="Reply…"
                       aria-label="Add comment"
                     />
+                    <ImageAttach value={commentImage} onChange={setCommentImage} />
                     <button type="button" class="btn btn-sm btn-primary" onClick={submitComment}>
-                      Comment
+                      Reply
                     </button>
                   </div>
                 </div>

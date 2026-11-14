@@ -44,15 +44,16 @@ CREATE TABLE IF NOT EXISTS issue_labels (
   PRIMARY KEY (issue_id, label_id)
 );
 
--- Comments on issues
+-- Comments on issues (replies); optional minified image data-URL
 CREATE TABLE IF NOT EXISTS comments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   issue_id INTEGER NOT NULL REFERENCES issues(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
+  image_data TEXT DEFAULT '',
   created_at TEXT DEFAULT (datetime('now'))
 );
 
--- Activity feed (issue + project scoped)
+-- Activity feed (issue + project scoped); optional minified image
 CREATE TABLE IF NOT EXISTS activities (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
@@ -61,6 +62,7 @@ CREATE TABLE IF NOT EXISTS activities (
   actor TEXT NOT NULL DEFAULT '',
   summary TEXT NOT NULL DEFAULT '',
   meta TEXT NOT NULL DEFAULT '{}',
+  image_data TEXT DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

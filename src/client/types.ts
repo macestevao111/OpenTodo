@@ -12,6 +12,7 @@ export interface Activity {
   actor: string;
   summary: string;
   meta: string;
+  image_data?: string;
   created_at: string;
 }
 
@@ -68,6 +69,7 @@ export interface Comment {
   id: number;
   issue_id: number;
   content: string;
+  image_data?: string;
   created_at: string;
 }
 

@@ -25,6 +25,32 @@ export async function ensureActivitiesTable(): Promise<void> {
   } catch {
     /* column already exists */
   }
+  try {
+    await run(`ALTER TABLE comments ADD COLUMN image_data TEXT DEFAULT ''`);
+  } catch {
+    /* exists */
+  }
+  try {
+    await run(`ALTER TABLE activities ADD COLUMN image_data TEXT DEFAULT ''`);
+  } catch {
+    /* exists */
+  }
+}
+
+/** Minified data-URL images only; keep Turso rows small. */
+export const MAX_IMAGE_CHARS = 180_000;
+
+export function normalizeImageData(raw: unknown): string {
+  if (typeof raw !== "string") return "";
+  const s = raw.trim();
+  if (!s) return "";
+  if (!s.startsWith("data:image/")) {
+    throw new Error("image_data must be a data:image/… URL");
+  }
+  if (s.length > MAX_IMAGE_CHARS) {
+    throw new Error(`Image too large after minify (max ~${Math.round(MAX_IMAGE_CHARS / 1000)}k chars)`);
+  }
+  return s;
 }
 
 export function actorFrom(c: Context<{ Variables: { user: AuthUser } }>): string {
@@ -42,11 +68,12 @@ export async function recordActivity(opts: {
   actor: string;
   summary: string;
   meta?: Record<string, unknown>;
+  imageData?: string;
 }): Promise<void> {
   try {
     await run(
-      `INSERT INTO activities (project_id, issue_id, kind, actor, summary, meta)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO activities (project_id, issue_id, kind, actor, summary, meta, image_data)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         opts.projectId ?? null,
         opts.issueId ?? null,
@@ -54,6 +81,7 @@ export async function recordActivity(opts: {
         opts.actor || "",
         opts.summary,
         JSON.stringify(opts.meta || {}),
+        opts.imageData || "",
       ],
     );
   } catch {

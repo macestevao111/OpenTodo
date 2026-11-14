@@ -1309,14 +1309,70 @@ tr:hover .actions-cell { opacity: 1; }
 .project-comment-box {
   display: flex;
   gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 .project-comment-box input {
   flex: 1;
+  min-width: 140px;
   font-family: var(--font);
   font-size: 13px;
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+}
+
+.project-compose { align-items: flex-start; }
+
+.project-activity-row {
+  grid-template-columns: 72px 1fr;
+}
+.activity-image-link {
+  grid-column: 2;
+  display: block;
+  max-width: 220px;
+}
+.activity-image {
+  display: block;
+  max-width: 220px;
+  max-height: 160px;
+  width: auto;
+  height: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  object-fit: cover;
+}
+
+.image-attach {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.image-attach-input { display: none; }
+.image-attach-preview {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+.image-attach-preview img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.image-attach-clear {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  padding: 2px 4px !important;
+  min-height: 0 !important;
+}
+.image-attach-error {
+  font-size: 11px;
+  color: var(--danger);
+  width: 100%;
 }
 
 @media (max-width: 900px) {

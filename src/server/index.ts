@@ -14,6 +14,7 @@ import {
   actorFrom,
   ensureActivitiesTable,
   issueProjectId,
+  normalizeImageData,
   recordActivity,
 } from "./activities.js";
 
@@ -119,6 +120,7 @@ const CommentSchema = z.object({
   id: z.number().int(),
   issue_id: z.number().int(),
   content: z.string(),
+  image_data: z.string().optional(),
   created_at: z.string(),
 }).openapi("Comment");
 
@@ -164,6 +166,7 @@ const ActivitySchema = z.object({
   actor: z.string(),
   summary: z.string(),
   meta: z.string(),
+  image_data: z.string().optional(),
   created_at: z.string(),
 }).openapi("Activity");
 
@@ -661,12 +664,15 @@ const createComment = createRoute({
   method: "post",
   path: "/api/issues/{id}/comments",
   tags: ["Comments"],
-  summary: "Add a comment to an issue",
+  summary: "Add a comment (reply) to an issue; optional minified image_data",
   request: {
     params: IdParam,
     body: {
       required: true,
-      content: { "application/json": { schema: z.object({ content: z.string().min(1) }) } },
+      content: { "application/json": { schema: z.object({
+        content: z.string().optional(),
+        image_data: z.string().optional(),
+      }) } },
     },
   },
   responses: {
@@ -683,10 +689,19 @@ app.openapi(createComment, async (c) => {
     if (isNaN(issueId)) return c.json({ error: "Invalid issue ID" }, 400);
 
     const body = c.req.valid("json");
-    const content = body.content.trim();
-    if (!content) return c.json({ error: "Content is required" }, 400);
+    let imageData = "";
+    try {
+      imageData = normalizeImageData(body.image_data);
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 400);
+    }
+    const content = (body.content || "").trim() || (imageData ? "[imagem]" : "");
+    if (!content && !imageData) return c.json({ error: "content or image_data required" }, 400);
 
-    const result = await run("INSERT INTO comments (issue_id, content) VALUES (?, ?)", [issueId, content]);
+    const result = await run(
+      "INSERT INTO comments (issue_id, content, image_data) VALUES (?, ?, ?)",
+      [issueId, content, imageData],
+    );
     const comment = await get("SELECT * FROM comments WHERE id = ?", [result.lastInsertRowid]);
     const preview = content.length > 120 ? content.slice(0, 117) + "…" : content;
     await recordActivity({
@@ -694,8 +709,9 @@ app.openapi(createComment, async (c) => {
       issueId,
       kind: "commented",
       actor: actorFrom(c),
-      summary: preview,
-      meta: { comment_id: comment?.id },
+      summary: imageData ? `${preview} 📎` : preview,
+      meta: { comment_id: comment?.id, has_image: Boolean(imageData) },
+      imageData,
     });
     return c.json({ comment }, 201);
   } catch (err: unknown) {
@@ -710,16 +726,7 @@ const listIssueActivities = createRoute({
   summary: "Activity feed for an issue (newest first)",
   request: { params: IdParam },
   responses: {
-    200: { description: "Activities", content: { "application/json": { schema: z.object({ activities: z.array(z.object({
-      id: z.number().int(),
-      project_id: z.number().int().nullable(),
-      issue_id: z.number().int().nullable(),
-      kind: z.string(),
-      actor: z.string(),
-      summary: z.string(),
-      meta: z.string(),
-      created_at: z.string(),
-    })) }) } } },
+    200: { description: "Activities", content: { "application/json": { schema: z.object({ activities: z.array(ActivitySchema) }) } } },
     400: { description: "Invalid ID", content: { "application/json": { schema: ErrorSchema } } },
     500: { description: "Server error", content: { "application/json": { schema: ErrorSchema } } },
   },
@@ -1034,6 +1041,68 @@ app.openapi(listProjectActivities, async (c) => {
       [projectId],
     );
     return c.json({ activities }, 200);
+  } catch (err: unknown) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
+});
+
+const createProjectActivity = createRoute({
+  method: "post",
+  path: "/api/projects/{id}/activities",
+  tags: ["Activities"],
+  summary: "Post a project note/reply with optional minified image",
+  request: {
+    params: IdParam,
+    body: {
+      required: true,
+      content: { "application/json": { schema: z.object({
+        summary: z.string().optional(),
+        image_data: z.string().optional(),
+        kind: z.string().optional(),
+      }) } },
+    },
+  },
+  responses: {
+    201: { description: "Created activity", content: { "application/json": { schema: z.object({ activity: ActivitySchema }) } } },
+    400: { description: "Validation error", content: { "application/json": { schema: ErrorSchema } } },
+    404: { description: "Not found", content: { "application/json": { schema: ErrorSchema } } },
+    500: { description: "Server error", content: { "application/json": { schema: ErrorSchema } } },
+  },
+});
+
+app.openapi(createProjectActivity, async (c) => {
+  try {
+    const { id: idStr } = c.req.valid("param");
+    const projectId = parseInt(idStr, 10);
+    if (isNaN(projectId)) return c.json({ error: "Invalid ID" }, 400);
+    const exists = await get("SELECT id FROM projects WHERE id = ?", [projectId]);
+    if (!exists) return c.json({ error: "Project not found" }, 404);
+
+    const body = c.req.valid("json");
+    let imageData = "";
+    try {
+      imageData = normalizeImageData(body.image_data);
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 400);
+    }
+    const summary = (body.summary || "").trim() || (imageData ? "[imagem]" : "");
+    if (!summary && !imageData) return c.json({ error: "summary or image_data required" }, 400);
+    const kind = body.kind === "reply" ? "reply" : "note";
+
+    await recordActivity({
+      projectId,
+      issueId: null,
+      kind,
+      actor: actorFrom(c),
+      summary: imageData && !summary.endsWith("📎") ? `${summary} 📎` : summary,
+      meta: { has_image: Boolean(imageData) },
+      imageData,
+    });
+    const activity = await get(
+      "SELECT * FROM activities WHERE project_id = ? ORDER BY id DESC LIMIT 1",
+      [projectId],
+    );
+    return c.json({ activity }, 201);
   } catch (err: unknown) {
     return c.json({ error: (err as Error).message }, 500);
   }

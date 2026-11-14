@@ -4,6 +4,7 @@ import { useApp } from "../context";
 import { StatusIcon, statusLabel } from "./status-icon";
 import { PriorityIcon, priorityLabel } from "./priority-icon";
 import { LabelPill } from "./label-pill";
+import { ImageAttach } from "./image-attach";
 import type { IssueStatus, Priority } from "../types";
 
 const STATUSES: IssueStatus[] = ["backlog", "todo", "in_progress", "done", "cancelled"];
@@ -17,6 +18,7 @@ export function IssueDetail() {
   } = useApp();
 
   const [comment, setComment] = useState("");
+  const [commentImage, setCommentImage] = useState("");
   const [editing, setEditing] = useState<"title" | "description" | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDesc, setEditDesc] = useState("");
@@ -37,10 +39,11 @@ export function IssueDetail() {
   };
 
   const handleComment = async () => {
-    if (!comment.trim()) return;
+    if (!comment.trim() && !commentImage) return;
     try {
-      await addComment(issue.id, comment.trim());
+      await addComment(issue.id, comment.trim() || "[imagem]", commentImage || undefined);
       setComment("");
+      setCommentImage("");
     } catch (e) { setError((e as Error).message); }
   };
 
@@ -142,10 +145,15 @@ export function IssueDetail() {
                   </button>
                 </div>
                 <div class="comment-content">{c.content}</div>
+                {c.image_data ? (
+                  <a href={c.image_data} target="_blank" rel="noreferrer">
+                    <img class="activity-image" src={c.image_data} alt="" />
+                  </a>
+                ) : null}
               </div>
             ))}
           </div>
-          <div class="comment-input">
+          <div class="comment-input project-compose">
             <input
               type="text"
               placeholder="Leave a comment..."
@@ -154,7 +162,8 @@ export function IssueDetail() {
               onKeyDown={(e) => { if (e.key === "Enter") handleComment(); }}
               aria-label="Add comment"
             />
-            <button class="btn btn-sm btn-primary" onClick={handleComment} disabled={!comment.trim()} aria-label="Send comment">
+            <ImageAttach value={commentImage} onChange={setCommentImage} />
+            <button class="btn btn-sm btn-primary" onClick={handleComment} disabled={!comment.trim() && !commentImage} aria-label="Send comment">
               <Send size={14} />
             </button>
           </div>

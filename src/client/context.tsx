@@ -26,7 +26,7 @@ export interface AppContextValue {
   // Issue detail
   selectedIssue: Issue | null;
   selectIssue: (id: number | null) => Promise<void>;
-  addComment: (issueId: number, content: string) => Promise<void>;
+  addComment: (issueId: number, content: string, imageData?: string) => Promise<void>;
   deleteComment: (commentId: number) => Promise<void>;
   addIssueLabel: (issueId: number, labelId: number) => Promise<void>;
   removeIssueLabel: (issueId: number, labelId: number) => Promise<void>;

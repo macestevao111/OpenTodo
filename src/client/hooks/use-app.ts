@@ -154,8 +154,11 @@ export function useAppState(isAgent: boolean): AppContextValue {
     setSelectedIssue(res.issue);
   }, []);
 
-  const addComment = useCallback(async (issueId: number, content: string) => {
-    await api("POST", `/api/issues/${issueId}/comments`, { content });
+  const addComment = useCallback(async (issueId: number, content: string, imageData?: string) => {
+    await api("POST", `/api/issues/${issueId}/comments`, {
+      content,
+      ...(imageData ? { image_data: imageData } : {}),
+    });
     // Refresh detail
     const res = await api<{ issue: Issue }>("GET", `/api/issues/${issueId}`);
     setSelectedIssue(res.issue);
