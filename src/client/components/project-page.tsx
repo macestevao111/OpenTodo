@@ -19,6 +19,7 @@ function kindLabel(kind: string): string {
     label_added: "label+",
     label_removed: "label−",
     commented: "comment",
+    synthesis: "síntese",
   };
   return map[kind] || kind;
 }
@@ -45,13 +46,21 @@ export function ProjectPage({ projectId }: Props) {
   const [loading, setLoading] = useState(true);
   const [editingDoc, setEditingDoc] = useState(false);
   const [docDraft, setDocDraft] = useState("");
+  const [editingSynthesis, setEditingSynthesis] = useState(false);
+  const [synthesisDraft, setSynthesisDraft] = useState("");
+  const [synthLog, setSynthLog] = useState<Activity[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [comment, setComment] = useState("");
 
   const loadProject = useCallback(async () => {
-    const data = await api<{ project: Project }>("GET", `/api/projects/${projectId}`);
+    const [data, acts] = await Promise.all([
+      api<{ project: Project }>("GET", `/api/projects/${projectId}`),
+      api<{ activities: Activity[] }>("GET", `/api/projects/${projectId}/activities`),
+    ]);
     setProject(data.project);
     setDocDraft(data.project.description || "");
+    setSynthesisDraft(data.project.synthesis || "");
+    setSynthLog((acts.activities || []).filter((a) => a.kind === "synthesis"));
   }, [projectId]);
 
   const loadIssues = useCallback(async () => {
@@ -116,6 +125,19 @@ export function ProjectPage({ projectId }: Props) {
       await updateProject(projectId, { description: docDraft });
       await loadProject();
       setEditingDoc(false);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const saveSynthesis = async () => {
+    try {
+      await api("PUT", `/api/projects/${projectId}`, {
+        synthesis: synthesisDraft,
+        log_synthesis: true,
+      });
+      await loadProject();
+      setEditingSynthesis(false);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -194,32 +216,75 @@ export function ProjectPage({ projectId }: Props) {
 
       <div class="project-page-body">
         <aside class="project-doc-panel">
-          <div class="project-panel-head">
-            <span class="project-panel-title">Documentação</span>
-            {!editingDoc ? (
-              <button type="button" class="btn btn-sm" onClick={() => setEditingDoc(true)}>Editar</button>
-            ) : (
-              <div class="project-doc-actions">
-                <button type="button" class="btn btn-sm" onClick={() => { setEditingDoc(false); setDocDraft(project.description || ""); }}>Cancelar</button>
-                <button type="button" class="btn btn-sm btn-primary" onClick={saveDoc}>Guardar</button>
+          <div class="project-doc-split">
+            <div class="project-doc-half">
+              <div class="project-panel-head">
+                <span class="project-panel-title">Documentação</span>
+                {!editingDoc ? (
+                  <button type="button" class="btn btn-sm" onClick={() => setEditingDoc(true)}>Editar</button>
+                ) : (
+                  <div class="project-doc-actions">
+                    <button type="button" class="btn btn-sm" onClick={() => { setEditingDoc(false); setDocDraft(project.description || ""); }}>Cancelar</button>
+                    <button type="button" class="btn btn-sm btn-primary" onClick={saveDoc}>Guardar</button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          {editingDoc ? (
-            <textarea
-              class="project-doc-editor"
-              value={docDraft}
-              onInput={(e) => setDocDraft((e.target as HTMLTextAreaElement).value)}
-              rows={16}
-              aria-label="Project documentation"
-            />
-          ) : (
-            <div class="project-doc-view">
-              {project.description?.trim()
-                ? project.description
-                : "Sem documentação. Editar para adicionar objetivo, links e notas."}
+              {editingDoc ? (
+                <textarea
+                  class="project-doc-editor"
+                  value={docDraft}
+                  onInput={(e) => setDocDraft((e.target as HTMLTextAreaElement).value)}
+                  aria-label="Project documentation"
+                />
+              ) : (
+                <div class="project-doc-view">
+                  {project.description?.trim()
+                    ? project.description
+                    : "Sem documentação. Editar para adicionar objetivo, links e notas."}
+                </div>
+              )}
             </div>
-          )}
+
+            <div class="project-doc-half project-synthesis-half">
+              <div class="project-panel-head">
+                <span class="project-panel-title project-synthesis-brand">
+                  <span class="synthesis-mark" aria-hidden="true">◇</span> Síntese
+                </span>
+                {!editingSynthesis ? (
+                  <button type="button" class="btn btn-sm" onClick={() => setEditingSynthesis(true)}>Editar</button>
+                ) : (
+                  <div class="project-doc-actions">
+                    <button type="button" class="btn btn-sm" onClick={() => { setEditingSynthesis(false); setSynthesisDraft(project.synthesis || ""); }}>Cancelar</button>
+                    <button type="button" class="btn btn-sm btn-primary" onClick={saveSynthesis}>Guardar</button>
+                  </div>
+                )}
+              </div>
+              {editingSynthesis ? (
+                <textarea
+                  class="project-doc-editor"
+                  value={synthesisDraft}
+                  onInput={(e) => setSynthesisDraft((e.target as HTMLTextAreaElement).value)}
+                  aria-label="Síntese do projeto"
+                />
+              ) : (
+                <div class="project-doc-view project-synthesis-view">
+                  {project.synthesis?.trim()
+                    ? project.synthesis
+                    : "Ainda sem Síntese. A skill opentodo-board atualiza este painel após mudanças no board; humanos podem editar."}
+                </div>
+              )}
+              <div class="project-synthesis-log">
+                <div class="project-panel-title">Log ◇</div>
+                {synthLog.length === 0 && <div class="muted synthesis-log-empty">Sem entradas ainda</div>}
+                {synthLog.slice(0, 8).map((a) => (
+                  <div key={a.id} class="synthesis-log-row">
+                    <span class="synthesis-log-meta muted">{a.actor || "—"} · {a.created_at}</span>
+                    <span class="synthesis-log-summary">{a.summary}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </aside>
 
         <section class="project-issues-panel">

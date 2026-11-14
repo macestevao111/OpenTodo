@@ -19,6 +19,12 @@ export async function ensureActivitiesTable(): Promise<void> {
   await run(
     `CREATE INDEX IF NOT EXISTS idx_activities_project ON activities(project_id, created_at)`,
   );
+  // ◇ Síntese — human-editable skill summary on projects
+  try {
+    await run(`ALTER TABLE projects ADD COLUMN synthesis TEXT DEFAULT ''`);
+  } catch {
+    /* column already exists */
+  }
 }
 
 export function actorFrom(c: Context<{ Variables: { user: AuthUser } }>): string {

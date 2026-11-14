@@ -144,6 +144,7 @@ const ProjectSchema = z.object({
   name: z.string(),
   icon: z.string(),
   description: z.string(),
+  synthesis: z.string().optional(),
   status: z.string(),
   priority: z.string(),
   lead: z.string(),
@@ -154,6 +155,17 @@ const ProjectSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
 }).openapi("Project");
+
+const ActivitySchema = z.object({
+  id: z.number().int(),
+  project_id: z.number().int().nullable(),
+  issue_id: z.number().int().nullable(),
+  kind: z.string(),
+  actor: z.string(),
+  summary: z.string(),
+  meta: z.string(),
+  created_at: z.string(),
+}).openapi("Activity");
 
 const IdParam = z.object({ id: z.string().openapi({ description: "Resource ID (integer)" }) });
 
@@ -928,11 +940,13 @@ const updateProject = createRoute({
         name: z.string().optional(),
         icon: z.string().optional(),
         description: z.string().optional(),
+        synthesis: z.string().optional(),
         status: z.string().optional(),
         priority: z.string().optional(),
         lead: z.string().optional(),
         start_date: z.string().optional(),
         target_date: z.string().optional(),
+        log_synthesis: z.boolean().optional(),
       }) } },
     },
   },
@@ -957,6 +971,7 @@ app.openapi(updateProject, async (c) => {
     if (body.name !== undefined) { setClauses.push("name = ?"); setParams.push(body.name); }
     if (body.icon !== undefined) { setClauses.push("icon = ?"); setParams.push(body.icon); }
     if (body.description !== undefined) { setClauses.push("description = ?"); setParams.push(body.description); }
+    if (body.synthesis !== undefined) { setClauses.push("synthesis = ?"); setParams.push(body.synthesis); }
     if (body.status !== undefined) { setClauses.push("status = ?"); setParams.push(body.status); }
     if (body.priority !== undefined) { setClauses.push("priority = ?"); setParams.push(body.priority); }
     if (body.lead !== undefined) { setClauses.push("lead = ?"); setParams.push(body.lead); }
@@ -971,8 +986,54 @@ app.openapi(updateProject, async (c) => {
     const result = await run("UPDATE projects SET " + setClauses.join(", ") + " WHERE id = ?", [...setParams]);
     if (result.changes === 0) return c.json({ error: "Project not found" }, 404);
 
+    if (body.synthesis !== undefined && body.log_synthesis !== false) {
+      const preview = String(body.synthesis).trim();
+      const summary = preview
+        ? (preview.length > 160 ? preview.slice(0, 157) + "…" : preview)
+        : "(síntese limpa)";
+      await recordActivity({
+        projectId: id,
+        issueId: null,
+        kind: "synthesis",
+        actor: actorFrom(c),
+        summary,
+        meta: { source: "synthesis" },
+      });
+    }
+
     const project = await get("SELECT * FROM projects WHERE id = ?", [id]);
     return c.json({ project }, 200);
+  } catch (err: unknown) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
+});
+
+const listProjectActivities = createRoute({
+  method: "get",
+  path: "/api/projects/{id}/activities",
+  tags: ["Activities"],
+  summary: "Activity feed for a project (newest first), includes ◇ Síntese log",
+  request: { params: IdParam },
+  responses: {
+    200: { description: "Activities", content: { "application/json": { schema: z.object({ activities: z.array(ActivitySchema) }) } } },
+    400: { description: "Invalid ID", content: { "application/json": { schema: ErrorSchema } } },
+    500: { description: "Server error", content: { "application/json": { schema: ErrorSchema } } },
+  },
+});
+
+app.openapi(listProjectActivities, async (c) => {
+  try {
+    const { id: idStr } = c.req.valid("param");
+    const projectId = parseInt(idStr, 10);
+    if (isNaN(projectId)) return c.json({ error: "Invalid ID" }, 400);
+    const activities = await query(
+      `SELECT * FROM activities
+       WHERE project_id = ?
+       ORDER BY created_at DESC, id DESC
+       LIMIT 200`,
+      [projectId],
+    );
+    return c.json({ activities }, 200);
   } catch (err: unknown) {
     return c.json({ error: (err as Error).message }, 500);
   }

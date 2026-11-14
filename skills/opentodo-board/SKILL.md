@@ -1,20 +1,24 @@
 ---
 name: opentodo-board
 description: >-
-  Read and write OpenTodo demands (issues/projects/labels) via the HTTP API CLI.
-  Use when the user asks to structure, list, create, update, or comment on board
-  tasks for estevao/thiago collaboration — never invent scope or mark done without evidence.
+  Read and write OpenTodo demands (issues/projects/labels) via the HTTP API CLI,
+  then refresh ◇ Síntese (project summary + log). Use when structuring, listing,
+  creating, or updating board tasks for estevao/thiago — never invent scope or
+  mark done without evidence.
 ---
 
-# OpenTodo board (API)
+# OpenTodo board (API) · ◇ Síntese
 
 Operate the shared board through **`scripts/board.mjs`** (HTTP + session cookie). Do **not** drive the browser UI.
+
+**Brand mark:** `◇ Síntese` — painel inferior da página de projeto: resumo gerado pela skill, **editável por humanos**, com log de cada atualização.
 
 ## When to use
 
 - Estruturar / quebrar / registrar demandas
 - Listar ou atualizar issues no OpenTodo
 - Comentar ou etiquetar dono (`estevao` | `thiago` | `agent`)
+- Atualizar a **◇ Síntese** de um projeto após mudanças no board
 
 ## Setup (env)
 
@@ -30,14 +34,17 @@ Credentials live in env / secrets — never commit passwords.
 ## Workflow
 
 1. `node skills/opentodo-board/scripts/board.mjs login`
-2. Read before write: `issues`, `projects`, `labels` as needed
+2. Read before write: `issues`, `projects`, `get-project`, `labels` as needed
 3. Create/update with the description format below
 4. Apply owner label
-5. Reply in chat with `TASK-n` identifiers and board URL
+5. **◇ Síntese (obrigatório após writes no projeto):**  
+   `synthesize --project "…" --auto`  
+   (ou `--body` com resumo sênior curto). Isto grava o painel + entrada no **Log ◇**.
+6. Reply in chat with `TASK-n` identifiers, board URL, and note that Síntese was refreshed
 
-Prefer project **Colab Agent**. Default new issue `status=backlog`.
+Prefer project **Colab Agent** or **API Todo** when relevant. Default new issue `status=backlog`.
 
-## Description format (required)
+## Description format (required for issues)
 
 ```
 Problema: <o que está errado ou em falta>
@@ -50,20 +57,29 @@ Como:
 
 Senior tone: short, concrete, no preamble.
 
+## ◇ Síntese — rules
+
+- Always refresh after creating/updating/commenting issues **of that project**
+- `--auto` builds a factual snapshot from open issues; add `--body` for a human-quality note
+- Humans may edit the panel in the UI; do not overwrite human prose without integrating it (read `get-project` first; if `synthesis` looks hand-edited, merge — keep their notes, update the snapshot block)
+- Log entries are append-only via API (`kind=synthesis`); never delete the log
+
 ## Commands
 
 ```bash
 node skills/opentodo-board/scripts/board.mjs login
 node skills/opentodo-board/scripts/board.mjs me
-node skills/opentodo-board/scripts/board.mjs issues [--status backlog] [--project "Colab Agent"] [--search …]
+node skills/opentodo-board/scripts/board.mjs issues [--status backlog] [--project "API Todo"] [--search …]
 node skills/opentodo-board/scripts/board.mjs get TASK-12
-node skills/opentodo-board/scripts/board.mjs create --title "…" --description "…" [--priority high] [--project "Colab Agent"] [--labels estevao,thiago]
-node skills/opentodo-board/scripts/board.mjs update TASK-12 --status in_progress [--title …] [--description …] [--priority …]
+node skills/opentodo-board/scripts/board.mjs create --title "…" --description "…" [--priority high] [--project "API Todo"] [--labels estevao,thiago]
+node skills/opentodo-board/scripts/board.mjs update TASK-12 --status in_progress
 node skills/opentodo-board/scripts/board.mjs comment TASK-12 --body "[agent] …"
 node skills/opentodo-board/scripts/board.mjs label TASK-12 --add estevao
-node skills/opentodo-board/scripts/board.mjs label TASK-12 --remove thiago
 node skills/opentodo-board/scripts/board.mjs projects
+node skills/opentodo-board/scripts/board.mjs get-project "API Todo"
 node skills/opentodo-board/scripts/board.mjs project-create --name "API Todo" [--description "…"] [--icon "🔌"]
+node skills/opentodo-board/scripts/board.mjs synthesize --project "API Todo" --auto
+node skills/opentodo-board/scripts/board.mjs synthesize --project "API Todo" --body "…"
 node skills/opentodo-board/scripts/board.mjs labels
 ```
 

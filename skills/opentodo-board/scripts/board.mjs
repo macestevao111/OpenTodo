@@ -27,6 +27,8 @@ Commands:
   label <TASK-n|id> --add NAME | --remove NAME
   projects
   project-create --name NAME [--description D] [--icon I] [--lead USER]
+  get-project <id|NAME>
+  synthesize --project NAME [--body TEXT | --auto]   # ◇ Síntese
   labels
 
 Env: BOARD_URL BOARD_USER BOARD_PASS [BOARD_COOKIE_JAR]
@@ -297,6 +299,50 @@ async function main() {
         };
         const data = await api("POST", "/api/projects", body);
         console.log(JSON.stringify(data, null, 2));
+        break;
+      }
+      case "get-project": {
+        const ref = args._[0] || args.project;
+        if (!ref) throw new Error("get-project requires id or name");
+        const id = await resolveProjectId(ref);
+        const data = await api("GET", `/api/projects/${id}`);
+        console.log(JSON.stringify(data, null, 2));
+        break;
+      }
+      case "synthesize": {
+        // ◇ Síntese — update project.synthesis + activity log
+        if (!args.project) throw new Error("synthesize requires --project");
+        const id = await resolveProjectId(args.project);
+        let bodyText = args.body || "";
+        if (args.auto || !bodyText) {
+          const { issues } = await api("GET", `/api/issues?project_id=${id}&limit=100`);
+          const byStatus = {};
+          for (const iss of issues) {
+            byStatus[iss.status] = (byStatus[iss.status] || 0) + 1;
+          }
+          const lines = [
+            `◇ Síntese · ${args.project}`,
+            `Atualizado: ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC`,
+            "",
+            `Issues: ${issues.length} · ` +
+              Object.entries(byStatus).map(([k, v]) => `${k}=${v}`).join(" · "),
+            "",
+            "Foco:",
+            ...issues
+              .filter((i) => i.status !== "done" && i.status !== "cancelled")
+              .slice(0, 8)
+              .map((i) => `- ${i.identifier} [${i.status}/${i.priority}] ${i.title}`),
+          ];
+          if (args.body) {
+            lines.push("", "Nota do agent:", args.body);
+          }
+          bodyText = lines.join("\n");
+        }
+        const data = await api("PUT", `/api/projects/${id}`, {
+          synthesis: bodyText,
+          log_synthesis: true,
+        });
+        console.log(JSON.stringify({ brand: "◇ Síntese", ...data }, null, 2));
         break;
       }
       case "labels":

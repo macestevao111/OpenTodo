@@ -38,6 +38,8 @@ export interface Project {
   name: string;
   icon: string;
   description: string;
+  /** ◇ Síntese — resumo gerado pela skill, editável por humanos */
+  synthesis?: string;
   status: ProjectStatus;
   priority: Priority;
   lead: string;

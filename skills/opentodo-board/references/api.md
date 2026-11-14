@@ -29,15 +29,21 @@ All other `/api/*` routes require a valid session cookie.
 Statuses: `backlog`, `todo`, `in_progress`, `done`, `cancelled`.  
 Priorities: `none`, `low`, `medium`, `high`, `urgent`.
 
-## Projects / labels / stats
+## Projects / labels / stats / Síntese
 
 | Method | Path |
 |--------|------|
-| GET | `/projects`, `/projects/all` |
+| GET | `/projects`, `/projects/all`, `/projects/:id` |
 | POST/PUT/DELETE | `/projects`, `/projects/:id` |
+| GET | `/projects/:id/activities` | includes `kind=synthesis` (Log ◇) |
+| GET | `/issues/:id/activities` |
 | GET | `/labels`, `/labels/all` |
 | POST/PUT/DELETE | `/labels`, `/labels/:id` |
 | GET | `/stats` |
+
+**◇ Síntese:** campo `projects.synthesis` (texto editável).  
+`PUT /projects/:id` com `{ "synthesis": "…", "log_synthesis": true }` atualiza o painel e grava activity `kind=synthesis`.  
+CLI: `board.mjs synthesize --project NAME --auto`.
 
 OpenAPI dump: `GET /api/openapi.json` (may be public depending on deploy; prefer this skill’s CLI).
 

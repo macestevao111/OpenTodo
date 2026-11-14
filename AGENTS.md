@@ -10,6 +10,8 @@ When structuring, listing, creating, or updating demands on the shared board, us
 
 Description format: **Problema / Solução / Como**. Do not mark `done` without evidence.
 
+After board writes on a project, refresh **◇ Síntese** (`pnpm board -- synthesize --project "…" --auto`). Humans may edit that panel; merge, don’t blind-overwrite.
+
 ## Tool paths
 
 | Tool | Skill path |

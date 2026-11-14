@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS projects (
   name TEXT NOT NULL,
   icon TEXT DEFAULT '📋',
   description TEXT DEFAULT '',
+  synthesis TEXT DEFAULT '',
   status TEXT NOT NULL DEFAULT 'planned',
   priority TEXT NOT NULL DEFAULT 'none',
   lead TEXT DEFAULT '',
