@@ -4,6 +4,14 @@ import { query, get, run } from "./db.js";
 
 const app = new OpenAPIHono();
 
+app.get("/api/health", (c) =>
+  c.json({
+    ok: true,
+    hasUrl: Boolean(process.env.TURSO_DATABASE_URL),
+    hasToken: Boolean(process.env.TURSO_AUTH_TOKEN),
+  }),
+);
+
 app.doc("/api/openapi.json", {
   openapi: "3.0.0",
   info: {

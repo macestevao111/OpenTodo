@@ -2,6 +2,10 @@
 
 Fork of [clawnify/OpenTodo](https://github.com/clawnify/OpenTodo) adapted to run on **Vercel Hobby (free)** with **Turso Free** as the SQLite database.
 
+- **Produção:** https://opentodo-jet.vercel.app  
+- **Agent mode:** https://opentodo-jet.vercel.app/?agent  
+- **Repo:** https://github.com/macestevao111/OpenTodo  
+
 > **Aviso:** o board está **aberto sem senha**. Qualquer pessoa com a URL pode criar e editar issues.
 
 ## Stack
