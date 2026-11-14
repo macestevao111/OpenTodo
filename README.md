@@ -72,3 +72,13 @@ Ou conecte o repo no dashboard da Vercel e configure as mesmas env vars (Product
 ## Agent mode
 
 Append `?agent` à URL para UI com alvos maiores e deletes explícitos (útil para browser agents).
+
+## Dois usuários + Agent
+
+Guia completo: [docs/guia-colaboracao-agent.md](docs/guia-colaboracao-agent.md).
+
+```bash
+pnpm seed:colab   # cria labels estevao/amigo/agent, projeto "Colab Agent" e issues iniciais
+```
+
+No Cursor, ative a regra `.cursor/rules/opentodo-board.mdc` e peça para estruturar demandas — o Agent grava issues na API do board.

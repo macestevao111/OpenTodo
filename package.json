@@ -7,6 +7,7 @@
     "dev": "concurrently -n ui,api -c cyan,green \"vite\" \"node --env-file=.env --import tsx src/server/dev.ts\"",
     "build": "vite build",
     "db:migrate": "node --env-file=.env scripts/migrate.mjs",
+    "seed:colab": "node scripts/seed-colab.mjs",
     "start:api": "node --env-file=.env --import tsx src/server/dev.ts"
   },
   "dependencies": {
